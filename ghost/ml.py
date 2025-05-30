@@ -15,7 +15,7 @@ def update_env():
     
     return env
 
-def run_prediction(input, output, scan_plane, device='cuda', keep=False, verbose=False):
+def run_prediction(input, output, scan_plane, device='cuda', keep=False, quick=False, verbose=False):
 
     scan_plane = scan_plane.lower()
     valid_scan_planes = ['axi', 'sag', 'cor']
@@ -48,6 +48,8 @@ def run_prediction(input, output, scan_plane, device='cuda', keep=False, verbose
 
     # 2. Get inference parameters
     jdata = get_model_config(scan_plane)
+    print(f'Running with model: {jdata["dataset_id"]}')
+    print(f"Predicting on images: {input}")
 
     env = update_env()
     nnUNet_results = env["nnUNet_results"]
@@ -57,6 +59,9 @@ def run_prediction(input, output, scan_plane, device='cuda', keep=False, verbose
     vstring = '--verbose' if verbose else ''
     
     cmd_predict = f"nnUNetv2_predict {vstring} -device {device} -d {jdata['dataset_id']} -i {tmpdir+'/input'} -o {tmpdir+'/predicted'} -f {jdata['folds']} -tr {jdata['trainer']} -c {jdata['config']} -p {jdata['plan']} --disable_progress_bar"
+
+    if quick:
+        cmd_predict += ' --disable_tta'
     
     sp.call(cmd_predict, shell=True, env=env)
     
@@ -74,6 +79,7 @@ def run_prediction(input, output, scan_plane, device='cuda', keep=False, verbose
             print(f)
         except:
             print(f'Could not copy to dest {f}')
+    
     if not keep:
         print("Cleaning up temporary directory")
         shutil.rmtree(tmpdir)
