@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from string import ascii_lowercase as alc
 import sys
 from typing import Tuple
@@ -47,7 +48,7 @@ def parse_config(gear_context: GearToolkitContext, input_id: str) -> Tuple[str, 
     config['output_dir'] = output_dir
     config['bids_config_file'] = base_dir + '/examples/unity_QA/bids/dcm2bids_config.json'
 
-    return container, config, manifest, inputs
+    return container, config, manifest
 
 
 def download_dataset(gear_context: GearToolkitContext, container, config):
@@ -88,6 +89,7 @@ def download_dataset(gear_context: GearToolkitContext, container, config):
         return output
 
     elif container.container_type == 'session':
+        print("--- Downloading session ---")
         proj_label = gear_context.client.get(container.parents.project).label
         sub_label = make_subject_label(gear_context.client.get(container.parents.subject))
         source_data_dir = os.path.join(source_data_dir, proj_label, sub_label)
@@ -98,9 +100,27 @@ def download_dataset(gear_context: GearToolkitContext, container, config):
 
         return {sub_label: {ses_label: ses_id}}
 
+    elif container.container_type == 'acquisition':
+        print("--- Downloading session ---")
+        proj_label = gear_context.client.get(container.parents.project).label
+        sub_label = make_subject_label(gear_context.client.get(container.parents.subject))
+        source_data_dir = os.path.join(source_data_dir, proj_label, sub_label)
+
+        # Get the session from the acquisition's parent
+        session_container = gear_context.client.get(container.parents.session)
+        source_data_dir = os.path.join(source_data_dir, proj_label, sub_label)
+        
+        # Download the session that contains this acquisition
+        ses_label, ses_dir, ses_id = download_session(session_container, source_data_dir, dry_run=False)
+
+        import_dicom_folder(dicom_dir=ses_dir, sub_name=sub_label, ses_name=ses_label, **import_options)
+
+        return {sub_label: {ses_label: ses_id}}
 
 def make_session_label(ses) -> str:
-    return ses.label.split()[0].replace("-",'')
+    date_match = re.match(r'^\d{4}-\d{2}-\d{2}', ses.label)
+    date_part = date_match.group(0) if date_match else ses.label.split()[0]
+    return re.sub(r'[^0-9A-Za-z]', '', date_part)
 
 
 def make_subject_label(sub) -> str:

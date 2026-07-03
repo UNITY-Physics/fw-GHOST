@@ -1,11 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash 
 
-# Easiest way is to use the fw api
-fw-beta gear config --create
-# Add in your API key
-# Change the config if you want to use CUDA/CPU
+GEAR=fw-ghost
+IMAGE=flywheel/ghost:0.0.6
+LOG=ghost-0.0.6-68b058579d7e867efdcd32d6
 
-fw-beta gear run -i -e bash
-
-# To execute the run with a specific file, find the hirearchy ID, it gets printed in the beginning of the run on flywheel 
-python3 run.py <ID>
+# Command:
+docker run -it --rm --entrypoint bash\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/app/:/flywheel/v0/app\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/utils:/flywheel/v0/utils\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/run.py:/flywheel/v0/run.py\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/${LOG}/input:/flywheel/v0/input\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/${LOG}/output:/flywheel/v0/output\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/${LOG}/work:/flywheel/v0/work\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/${LOG}/config.json:/flywheel/v0/config.json\
+	-v /Users/nbourke/GD/atom/unity/fw-gears/${GEAR}/${LOG}/manifest.json:/flywheel/v0/manifest.json\
+	$IMAGE

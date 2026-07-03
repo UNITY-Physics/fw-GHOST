@@ -52,7 +52,7 @@
     },
     "gear-builder": {
       "category": "analysis",
-      "image": "flywheel/ghost:0.0.5"
+      "image": "flywheel/ghost:0.0.8"
     },
     "kcl-app-binary": "app/main.py",
     "kcl-app-modalities": [
@@ -64,6 +64,9 @@
         "url": ""
       },
       "non-commercial-use-only": false
+    },
+    "resources": {
+      "gpu": 1
     }
   },
   "description": "This gear performs QA asssessments data acquired with the UNITY Phantom (Caliber Mini Hybrid Phantom)",
@@ -95,5 +98,5 @@
   "name": "ghost",
   "source": "https://github.com/UNITY-Physics/fw-GHOST",
   "url": "https://github.com/UNITY-Physics/fw-GHOST",
-  "version": "0.0.5"
+  "version": "0.0.8"
 }

@@ -26,8 +26,8 @@ def main(context: GearToolkitContext) -> None:
         gb._logprint("No ID supplied. Reading from input file")
         my_id = None
         
-    container, config, manifest = parse_config(context, input_id=my_id)
-    print(f"container is {container.container_type}")
+    container, config, manifest, inputs = parse_config(context, input_id=my_id)
+    
     subses = download_dataset(context, container, config)
 
     gb._logprint("Indexing folder structure")    
@@ -35,71 +35,42 @@ def main(context: GearToolkitContext) -> None:
 
     gb._logprint("Running main script...")
     
-
     for sub in subses.keys():
         for ses in subses[sub].keys():
-            raw_fnames, deriv_fnames = fw_process_subject(
-                layout, sub, ses,
-                run_mimics=config["runMimicSeg"],
-                run_fiducials=config["runFiducialSeg"],
-                unet_device=config["nnUNetDevice"],
-                unet_quick=config['nnUNetQuick']
-            )
-
-            gb._logprint("Organising output files...")
+            raw_fnames, deriv_fnames = fw_process_subject(layout, sub, ses, 
+                                                  run_mimics=config["runMimicSeg"], 
+                                                  run_fiducials=config["runFiducialSeg"],
+                                                  unet_device=config["nnUNetDevice"],
+                                                  unet_quick=config['nnUNetQuick'])
+    
             out_files = []
             out_files.extend(raw_fnames)
             out_files.extend(deriv_fnames)
 
-            # Identify container
+            # Create a new analysis
+            gversion = manifest["version"]
+            gname = manifest["name"]
+            gdate = datetime.now().strftime("%Y%M%d_%H:%M:%S")
+            image = manifest["custom"]["gear-builder"]["image"]
             session_container = context.client.get(subses[sub][ses])
-            container_type = session_container.container_type  # "session", "analysis", etc.
+            
+            analysis = session_container.add_analysis(label=f'{gname}/{gversion}/{gdate}')
+            analysis.update_info({"gear":gname,
+                                  "version":gversion, 
+                                  "image":image,
+                                  "Date":gdate,
+                                  **config})
 
-            if container_type == "session":
-                # Copy files into /flywheel/output
-                for file in out_files:
-                    if os.path.exists(file):
-                        dest_path = os.path.join("/flywheel/v0/output", os.path.basename(file))
-                        try:
-                            shutil.copy(file, dest_path)
-                            gb._logprint(f"Copied {file} → {dest_path}")
-                        except Exception as e:
-                            gb._logprint(f"❌ Failed to copy {file}: {e}")
-                    else:
-                        gb._logprint(f"⚠️ Skipping missing file: {file}")
 
-            else:
-                # Otherwise, create an analysis and upload outputs
-                gversion = manifest["version"]
-                gname = manifest["name"]
-                gdate = datetime.now().strftime("%Y%M%d_%H:%M:%S")
-                image = manifest["custom"]["gear-builder"]["image"]
+            for file in out_files:
+                gb._logprint(f"Uploading output file: {os.path.basename(file)}")
+                analysis.upload_output(file)
 
-                analysis = session_container.add_analysis(
-                    label=f'{gname}/{gversion}/{gdate}'
-                )
-                analysis.update_info({
-                    "gear": gname,
-                    "version": gversion,
-                    "image": image,
-                    "Date": gdate,
-                    **config
-                })
+    gb._logprint("Copying output files")
 
-                for file in out_files:
-                    if os.path.exists(file):
-                        gb._logprint(f"Uploading output file: {os.path.basename(file)}")
-                        try:
-                            analysis.upload_output(file)
-                        except Exception as e:
-                            gb._logprint(f"❌ Failed to upload {file}: {e}")
-                    else:
-                        gb._logprint(f"⚠️ Skipping missing file: {file}")
+    if not os.path.exists(config['output_dir']):
+        os.makedirs(config['output_dir'])
 
-    gb._logprint("Finished sorting output files")
-
-    # if not os.path.exists(config['output_dir']):
-    #     os.makedirs(config['output_dir'])
 
 
 def parse_input_files(layout, sub, ses, show_summary=True):
