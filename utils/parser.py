@@ -118,9 +118,13 @@ def download_dataset(gear_context: GearToolkitContext, container, config):
         return {sub_label: {ses_label: ses_id}}
 
 def make_session_label(ses) -> str:
-    date_match = re.match(r'^\d{4}-\d{2}-\d{2}', ses.label)
-    date_part = date_match.group(0) if date_match else ses.label.split()[0]
-    return re.sub(r'[^0-9A-Za-z]', '', date_part)
+    datetime_match = re.match(r'^\d{4}-\d{2}-\d{2}[ _T]\d{2}[:_]\d{2}[:_]\d{2}', ses.label)
+    if datetime_match:
+        label_part = datetime_match.group(0)
+    else:
+        date_match = re.match(r'^\d{4}-\d{2}-\d{2}', ses.label)
+        label_part = date_match.group(0) if date_match else ses.label.split()[0]
+    return re.sub(r'[^0-9A-Za-z]', '', label_part)
 
 
 def make_subject_label(sub) -> str:
