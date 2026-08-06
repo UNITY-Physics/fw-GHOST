@@ -60,6 +60,14 @@
             "criteria": {
               "SeriesDescription": "*FISP*"
             }
+        },
+        {
+            "datatype": "anat",
+            "suffix": "PDw",
+            "custom_entities":"acq-temperature",
+            "criteria": {
+              "SeriesDescription": "Temperature*"
+            }
         }
     ]
 }
